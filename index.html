@@ -25,8 +25,8 @@
          }
          .color {
          display: inline-block;
-         width: 36.5714285714px;
-         height: 36.5714285714px;
+         width: 50px;
+         height: 50px;
          border: 0px solid black;
          box-sizing: border-box;
          }
@@ -44,13 +44,16 @@
          cursor: pointer;
          color: rgba(0, 0, 0, 0.2); /* 50% transparent black */
          }
+         body, svg {
+         touch-action: none; /* Prevents default pan/zoom on touch */
+         }
          svg {
-   background-color: transparent;
-   cursor: crosshair;
-   border: 2px dashed transparent; /* Always 2px, but invisible initially */
-   box-sizing: border-box; /* Ensures border doesn't affect layout */
-   transition: border-color 0.2s ease;
-}         main {
+         background-color: transparent;
+         cursor: crosshair;
+         border: 2px dashed transparent; /* Always 2px, but invisible initially */
+         box-sizing: border-box; /* Ensures border doesn't affect layout */
+         transition: border-color 0.2s ease;
+         }         main {
          display: flex;
          flex-direction: column;
          align-items: center;
@@ -302,6 +305,30 @@
          
          let mouseDown = false;
          let reentering = false;
+         
+         // Touch support
+         svg.addEventListener("touchstart", (e) => {
+         if (!isDrawingMode) return;
+         e.preventDefault(); // Prevents scrolling
+         startDraw(e);
+         });
+         
+         svg.addEventListener("touchmove", (e) => {
+         if (!isDrawingMode) return;
+         e.preventDefault();
+         draw(e);
+         });
+         
+         svg.addEventListener("touchend", (e) => {
+         e.preventDefault();
+         endDraw();
+         });
+         
+         svg.addEventListener("touchcancel", (e) => {
+         e.preventDefault();
+         endDraw();
+         });
+         
          
          // Global mouse state
          document.addEventListener("mousedown", () => {
