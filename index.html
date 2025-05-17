@@ -1,409 +1,354 @@
 <!DOCTYPE html>
 <html>
-   <head>
-      <meta name="viewport" content="width=device-width, initial-scale=.7" />
-      <style>
-         html,
-         body {
-         width: 100%;
-         height: 100%;
-         display: flex;
-         justify-content: center;
-         align-items: center;
-         margin: 0;
-         padding: 0;
-         overflow: hidden;
-         background-color: #eeeeee;
-         color: #f5f5f5;
-         font-family: Arial, sans-serif;
-         }
-         body {
-         display: flex;
-         flex-direction: column;
-         align-items: center;
-         padding: 20px;
-         }
-         .color {
-         display: inline-block;
-         width: 50px;
-         height: 50px;
-         border: 0px solid black;
-         box-sizing: border-box;
-         }
-         #button-container {
-         display: flex;
-         justify-content: center;
-         gap: 20px;
-         padding: 10px 0;
-         }
-         #button-container button,
-         #button-container select {
-         padding: 0px 10px;
-         background-color: transparent;
-         border: none;
-         cursor: pointer;
-         color: rgba(0, 0, 0, 0.2); /* 50% transparent black */
-         }
-         body, svg {
-         touch-action: none; /* Prevents default pan/zoom on touch */
-         }
-         svg {
-         background-color: transparent;
-         cursor: crosshair;
-         border: 2px dashed transparent; /* Always 2px, but invisible initially */
-         box-sizing: border-box; /* Ensures border doesn't affect layout */
-         transition: border-color 0.2s ease;
-         }         main {
-         display: flex;
-         flex-direction: column;
-         align-items: center;
-         justify-content: center;
-         width: 100%;
-         }
-        #color-palette {
-   display: flex;
-   flex-wrap: wrap;
-   justify-content: flex-start;
-}         
-         #clear-btn:disabled {
-         opacity: 0.5; /* Reduce opacity for disabled state */
-         }
-      </style>
-   </head>
-   <body>
-      <main>
-         <br>
-         <svg id="paint-svg" width="512" height="512"></svg>
-         <div id="button-container">
-            <button id="toggle-btn">Draw</button>
-            <button id="save-btn">Export</button>
-            <select id="size-selector">
-               <option value="64">64</option>
-               <option value="128">128</option>
-               <option value="256">256</option>
-               <option value="512" selected>512</option>
-               <option value="1024">1024</option>
-               <option value="2048">2048</option>
-               <option value="4096">4096</option>
-               <option value="8192">8192</option>
-               <option value="svg">SVG</option>
-            </select>
-            <button id="clear-btn">Clear</button>
-         </div>
-         <div id="color-palette"></div>
-      </main>
-      <script>
-         "use strict";
-         
-         const colors = [
-            "#000000",
-            "#464646",
-            "#787878",
-            "#990030",
-            "#ed1c24",
-            "#ff7e00",
-            "#ffc20e",
-            "#fff200",
-            "#a8e61d",
-            "#22b14c",
-            "#00b7ef",
-            "#4d6df3",
-            "#2f3699",
-            "#6f3198",
-            "#ffffff",
-            "#dcdcdc",
-            "#b4b4b4",
-            "#9c5a3c",
-            "#ffa3b1",
-            "#e5aa7a",
-            "#f5e49c",
-            "#fffdbd",
-            "#d3f9bc",
-            "#9dbb61",
-            "#99d9ea",
-            "#7086d1",
-            "#546d8e",
-            "#b5a5d5",
-         ];
-         const svg = document.getElementById("paint-svg");
-         svg.style.borderColor = "#AAA"; // Set visible border on load
-         const saveBtn = document.getElementById("save-btn");
-         const clearBtn = document.getElementById("clear-btn");
-         const toggleBtn = document.getElementById("toggle-btn");
-         const colorPalette = document.getElementById("color-palette");
-         
-         let painting = false;
-         let points = [];
-         let currentColor = colors[0]; // default color is the first one
-         let currentPath = null;
-         let isDrawingMode = true;
-         let lastDrawingColor = currentColor; // initialize the last drawing color
-         let lastViewColor = "#EEEEEE"; // initialize the last view color
-         
-         colors.forEach((color) => {
-            const colorDiv = document.createElement("div");
-            colorDiv.style.backgroundColor = color;
-            colorDiv.classList.add("color");
-            colorPalette.appendChild(colorDiv);
-         });
-         
-         colorPalette.addEventListener("click", (e) => {
-            if (e.target.classList.contains("color")) {
-               currentColor = e.target.style.backgroundColor;
-               if (isDrawingMode) {
-                  lastDrawingColor = currentColor;
-               } else {
-                  document.body.style.backgroundColor = currentColor;
-                  lastViewColor = currentColor;
-         
-                  // Check if the selected color is black
-                  if (currentColor === "rgb(0, 0, 0)") {
-                     // If it is, change the color of the buttons and select text to white
-                     document.querySelectorAll("#button-container button, #button-container select").forEach((el) => {
-                        el.style.color = "#FFFFFF";
-                     });
-                  } else {
-                     // If it's not black, revert the color to 20% transparent black
-                     document.querySelectorAll("#button-container button, #button-container select").forEach((el) => {
-                        el.style.color = "rgba(0, 0, 0, 0.2)";
-                     });
-                  }
-               }
-            }
-         });
-         
-         document.addEventListener("DOMContentLoaded", () => {
-   const isMobile = window.matchMedia("(pointer: coarse) and (max-width: 768px)").matches;
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=.7" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #eeeeee;
+        color: #f5f5f5;
+        font-family: Arial, sans-serif;
+      }
 
-   if (isMobile) {
-      const palette = document.getElementById("color-palette");
-      const colors = palette.querySelectorAll(".color");
-      const totalColors = colors.length;
-      const rows = 4;
-      const columns = Math.ceil(totalColors / rows);
-      const gap = 0; // adjust if needed
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
 
-      // Get the actual display width of the container
-      const containerWidth = palette.clientWidth || window.innerWidth;
+      .color {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        border: 0px solid black;
+        box-sizing: border-box;
+      }
 
-      // Calculate square size: account for total gaps between columns
-      const totalGapWidth = (columns - 1) * gap;
-      const boxSize = Math.floor((containerWidth - totalGapWidth) / columns);
+      #button-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        padding: 10px 0;
+      }
 
-      colors.forEach(el => {
-         el.style.width = `${boxSize}px`;
-         el.style.height = `${boxSize}px`;
-         el.style.marginRight = `${gap}px`;
-         el.style.marginBottom = `${gap}px`;
+      #button-container button,
+      #button-container select {
+        padding: 0px 10px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        color: rgba(0, 0, 0, 0.2);
+        /* 50% transparent black */
+      }
+
+      body,
+      svg {
+        touch-action: none;
+        /* Prevents default pan/zoom on touch */
+      }
+
+      svg {
+        background-color: transparent;
+        cursor: crosshair;
+        border: 2px dashed transparent;
+        /* Always 2px, but invisible initially */
+        box-sizing: border-box;
+        /* Ensures border doesn't affect layout */
+        transition: border-color 0.2s ease;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+
+      #color-palette {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+
+      #clear-btn:disabled {
+        opacity: 0.5;
+        /* Reduce opacity for disabled state */
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <br>
+      <svg id="paint-svg" width="512" height="512"></svg>
+      <div id="button-container">
+        <button id="toggle-btn">Draw</button>
+        <button id="save-btn">Export</button>
+        <select id="size-selector">
+          <option value="64">64</option>
+          <option value="128">128</option>
+          <option value="256">256</option>
+          <option value="512" selected>512</option>
+          <option value="1024">1024</option>
+          <option value="2048">2048</option>
+          <option value="4096">4096</option>
+          <option value="8192">8192</option>
+          <option value="svg">SVG</option>
+        </select>
+        <button id="clear-btn">Clear</button>
+      </div>
+      <div id="color-palette"></div>
+    </main>
+    <script>
+      "use strict";
+      const colors = ["#000000", "#464646", "#787878", "#990030", "#ed1c24", "#ff7e00", "#ffc20e", "#fff200", "#a8e61d", "#22b14c", "#00b7ef", "#4d6df3", "#2f3699", "#6f3198", "#ffffff", "#dcdcdc", "#b4b4b4", "#9c5a3c", "#ffa3b1", "#e5aa7a", "#f5e49c", "#fffdbd", "#d3f9bc", "#9dbb61", "#99d9ea", "#7086d1", "#546d8e", "#b5a5d5", ];
+      const svg = document.getElementById("paint-svg");
+      svg.style.borderColor = "#AAA"; // Set visible border on load
+      const saveBtn = document.getElementById("save-btn");
+      const clearBtn = document.getElementById("clear-btn");
+      const toggleBtn = document.getElementById("toggle-btn");
+      const colorPalette = document.getElementById("color-palette");
+      let painting = false;
+      let points = [];
+      let currentColor = colors[0]; // default color is the first one
+      let currentPath = null;
+      let isDrawingMode = true;
+      let lastDrawingColor = currentColor; // initialize the last drawing color
+      let lastViewColor = "#EEEEEE"; // initialize the last view color
+      colors.forEach((color) => {
+        const colorDiv = document.createElement("div");
+        colorDiv.style.backgroundColor = color;
+        colorDiv.classList.add("color");
+        colorPalette.appendChild(colorDiv);
       });
-   }
-});
-         
-         toggleBtn.addEventListener("click", () => {
-            isDrawingMode = !isDrawingMode;
-            if (isDrawingMode) {
-               toggleBtn.textContent = "Draw";
-               clearBtn.disabled = false;
-              svg.style.borderColor = "#AAA"; // for draw
-               currentColor = lastDrawingColor; // Use the last drawing color
-               document.body.style.backgroundColor = "#EEEEEE"; // Use the default color when in drawing mode
+      colorPalette.addEventListener("click", (e) => {
+        if (e.target.classList.contains("color")) {
+          currentColor = e.target.style.backgroundColor;
+          if (isDrawingMode) {
+            lastDrawingColor = currentColor;
+          } else {
+            document.body.style.backgroundColor = currentColor;
+            lastViewColor = currentColor;
+            // Check if the selected color is black
+            if (currentColor === "rgb(0, 0, 0)") {
+              // If it is, change the color of the buttons and select text to white
+              document.querySelectorAll("#button-container button, #button-container select").forEach((el) => {
+                el.style.color = "#FFFFFF";
+              });
             } else {
-               toggleBtn.textContent = "View";
-               clearBtn.disabled = true;
-               svg.style.borderColor = "transparent"; // for view
-               document.body.style.backgroundColor = lastViewColor; // Use the last view color when not in drawing mode
+              // If it's not black, revert the color to 20% transparent black
+              document.querySelectorAll("#button-container button, #button-container select").forEach((el) => {
+                el.style.color = "rgba(0, 0, 0, 0.2)";
+              });
             }
-         });
-         
-         function setPathAttributes(path) {
-            path.setAttribute("stroke", currentColor);
-            path.setAttribute("stroke-width", "15");
-            path.setAttribute("fill", "none");
-            path.setAttribute("stroke-linecap", "round"); // makes the end of the stroke rounded
-            path.setAttribute("stroke-linejoin", "round"); // makes the corners of the stroke rounded
-         }
-         
-         function startDraw(e) {
-            if (!isDrawingMode) return;
-            painting = true;
-            points = [];
-            currentPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            setPathAttributes(currentPath);
-            svg.appendChild(currentPath);
-            draw(e);
-         }
-         
-         function endDraw() {
-            if (!isDrawingMode) return;
-            painting = false;
-            points.length = 0;
-            currentPath = null;
-         }
-         
-         function draw(e) {
-            if (!isDrawingMode || !painting) return;
-         
-            const { clientX, clientY } = e.touches ? e.touches[0] : e;
-            const offsetX = clientX - svg.getBoundingClientRect().left;
-            const offsetY = clientY - svg.getBoundingClientRect().top;
-            points.push({ x: offsetX, y: offsetY });
-         
-            if (points.length >= 2) {
-               const pointStart = points[points.length - 2];
-               const pointEnd = points[points.length - 1];
-         
-               const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-               setPathAttributes(path);
-         
-               const d = `M ${pointStart.x} ${pointStart.y} L ${pointEnd.x} ${pointEnd.y}`;
-               path.setAttribute("d", d);
-         
-               svg.appendChild(path);
+          }
+        }
+      });
+      document.addEventListener("DOMContentLoaded", () => {
+        const isMobile = window.matchMedia("(pointer: coarse) and (max-width: 768px)").matches;
+        if (isMobile) {
+          const palette = document.getElementById("color-palette");
+          const colors = palette.querySelectorAll(".color");
+          const totalColors = colors.length;
+          const rows = 4;
+          const columns = Math.ceil(totalColors / rows);
+          const gap = 0; // adjust if needed
+          // Get the actual display width of the container
+          const containerWidth = palette.clientWidth || window.innerWidth;
+          // Calculate square size: account for total gaps between columns
+          const totalGapWidth = (columns - 1) * gap;
+          const boxSize = Math.floor((containerWidth - totalGapWidth) / columns);
+          colors.forEach(el => {
+            el.style.width = `${boxSize}px`;
+            el.style.height = `${boxSize}px`;
+            el.style.marginRight = `${gap}px`;
+            el.style.marginBottom = `${gap}px`;
+          });
+        }
+      });
+      toggleBtn.addEventListener("click", () => {
+        isDrawingMode = !isDrawingMode;
+        if (isDrawingMode) {
+          toggleBtn.textContent = "Draw";
+          clearBtn.disabled = false;
+          svg.style.borderColor = "#AAA"; // for draw
+          currentColor = lastDrawingColor; // Use the last drawing color
+          document.body.style.backgroundColor = "#EEEEEE"; // Use the default color when in drawing mode
+        } else {
+          toggleBtn.textContent = "View";
+          clearBtn.disabled = true;
+          svg.style.borderColor = "transparent"; // for view
+          document.body.style.backgroundColor = lastViewColor; // Use the last view color when not in drawing mode
+        }
+      });
+
+      function setPathAttributes(path) {
+        path.setAttribute("stroke", currentColor);
+        path.setAttribute("stroke-width", "15");
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke-linecap", "round"); // makes the end of the stroke rounded
+        path.setAttribute("stroke-linejoin", "round"); // makes the corners of the stroke rounded
+      }
+
+      function startDraw(e) {
+        if (!isDrawingMode) return;
+        painting = true;
+        points = [];
+        currentPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        setPathAttributes(currentPath);
+        svg.appendChild(currentPath);
+        draw(e);
+      }
+
+      function endDraw() {
+        if (!isDrawingMode) return;
+        painting = false;
+        points.length = 0;
+        currentPath = null;
+      }
+
+      function draw(e) {
+        if (!isDrawingMode || !painting) return;
+        const {
+          clientX,
+          clientY
+        } = e.touches ? e.touches[0] : e;
+        const offsetX = clientX - svg.getBoundingClientRect().left;
+        const offsetY = clientY - svg.getBoundingClientRect().top;
+        points.push({
+          x: offsetX,
+          y: offsetY
+        });
+        if (points.length >= 2) {
+          const pointStart = points[points.length - 2];
+          const pointEnd = points[points.length - 1];
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          setPathAttributes(path);
+          const d = `M ${pointStart.x} ${pointStart.y} L ${pointEnd.x} ${pointEnd.y}`;
+          path.setAttribute("d", d);
+          svg.appendChild(path);
+        }
+      }
+      saveBtn.addEventListener("click", () => {
+        const isBorderActive = svg.style.border !== "none";
+        svg.style.border = "none";
+        const size = document.getElementById("size-selector").value;
+        if (size === "svg") {
+          const serializer = new XMLSerializer();
+          const svgStr = serializer.serializeToString(svg);
+          const blob = new Blob([svgStr], {
+            type: "image/svg+xml"
+          });
+          const link = document.createElement("a");
+          link.download = "simpledraw.svg";
+          link.href = URL.createObjectURL(blob);
+          link.click();
+        } else {
+          const serializer = new XMLSerializer();
+          const svgStr = serializer.serializeToString(svg);
+          const imgsrc = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
+          const img = new Image();
+          img.src = imgsrc;
+          img.onload = function() {
+            const canvas = document.createElement("canvas");
+            canvas.width = size; // output size
+            canvas.height = size; // output size
+            const context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas to make it transparent
+            if (!isDrawingMode) {
+              context.fillStyle = lastViewColor;
+              context.fillRect(0, 0, canvas.width, canvas.height);
             }
-         }
-         
-         saveBtn.addEventListener("click", () => {
-            const isBorderActive = svg.style.border !== "none";
-            svg.style.border = "none";
-         
-            const size = document.getElementById("size-selector").value;
-            if (size === "svg") {
-               const serializer = new XMLSerializer();
-               const svgStr = serializer.serializeToString(svg);
-               const blob = new Blob([svgStr], { type: "image/svg+xml" });
-         
-               const link = document.createElement("a");
-               link.download = "simpledraw.svg";
-               link.href = URL.createObjectURL(blob);
-               link.click();
-            } else {
-               const serializer = new XMLSerializer();
-               const svgStr = serializer.serializeToString(svg);
-         
-               const imgsrc = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgStr)));
-               const img = new Image();
-               img.src = imgsrc;
-         
-               img.onload = function () {
-                  const canvas = document.createElement("canvas");
-                  canvas.width = size; // output size
-                  canvas.height = size; // output size
-                  const context = canvas.getContext("2d");
-                  context.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas to make it transparent
-         
-                  if (!isDrawingMode) {
-                     context.fillStyle = lastViewColor;
-                     context.fillRect(0, 0, canvas.width, canvas.height);
-                  }
-         
-                  context.drawImage(img, 0, 0, size, size); // Use 'size' instead of 'canvas.width' and 'canvas.height'
-         
-                  const dataUrl = canvas.toDataURL("image/png");
-         
-                  const now = new Date();
-                  const formattedDateTime =
-                     now.getFullYear().toString() +
-                     (now.getMonth() + 1).toString().padStart(2, "0") +
-                     now.getDate().toString().padStart(2, "0") +
-                     "_" +
-                     now.getHours().toString().padStart(2, "0") +
-                     now.getMinutes().toString().padStart(2, "0") +
-                     now.getSeconds().toString().padStart(2, "0");
-         
-                  const link = document.createElement("a");
-                  link.download = "simpledraw_" + formattedDateTime + ".png";
-                  link.href = dataUrl;
-                  link.click();
-               };
-            }
-         
-            if (isDrawingMode && isBorderActive) {
-               svg.style.border = "2px dashed #AAA";
-            }
-         });
-         
-         clearBtn.addEventListener("click", () => {
-            if (!isDrawingMode) return;
-            while (svg.firstChild) {
-               svg.removeChild(svg.lastChild);
-            }
-         });
-         
-         let mouseDown = false;
-         let reentering = false;
-         
-         // Touch support
-         svg.addEventListener("touchstart", (e) => {
-         if (!isDrawingMode) return;
-         e.preventDefault(); // Prevents scrolling
-         startDraw(e);
-         });
-         
-         svg.addEventListener("touchmove", (e) => {
-         if (!isDrawingMode) return;
-         e.preventDefault();
-         draw(e);
-         });
-         
-         svg.addEventListener("touchend", (e) => {
-         e.preventDefault();
-         endDraw();
-         });
-         
-         svg.addEventListener("touchcancel", (e) => {
-         e.preventDefault();
-         endDraw();
-         });
-         
-         
-         // Global mouse state
-         document.addEventListener("mousedown", () => {
-         mouseDown = true;
-         });
-         document.addEventListener("mouseup", () => {
-         mouseDown = false;
-         endDraw();
-         });
-         
-         // Canvas events
-         svg.addEventListener("mousedown", (e) => {
-         if (!isDrawingMode) return;
-         startDraw(e);
-         });
-         
-         svg.addEventListener("mousemove", (e) => {
-         if (!isDrawingMode) return;
-         
-         if (reentering && mouseDown) {
-         // User reentered canvas while holding mouse — start a new stroke
-         startDraw(e);
-         reentering = false;
-         }
-         
-         draw(e);
-         });
-         
-         svg.addEventListener("mouseup", () => {
-         endDraw();
-         });
-         
-         svg.addEventListener("mouseleave", () => {
-         if (painting) {
-         endDraw();
-         if (mouseDown) {
-         reentering = true;
-         }
-         }
-         });
-         
-         svg.addEventListener("mouseenter", (e) => {
-         // Resume drawing on next mousemove (handled there)
-         });
-         
-         // JavaScript back button function
-         function goBack() {
-            window.history.back();
-         }
-      </script>
-   </body>
+            context.drawImage(img, 0, 0, size, size); // Use 'size' instead of 'canvas.width' and 'canvas.height'
+            const dataUrl = canvas.toDataURL("image/png");
+            const now = new Date();
+            const formattedDateTime = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, "0") + now.getDate().toString().padStart(2, "0") + "_" + now.getHours().toString().padStart(2, "0") + now.getMinutes().toString().padStart(2, "0") + now.getSeconds().toString().padStart(2, "0");
+            const link = document.createElement("a");
+            link.download = "vecdraw_" + formattedDateTime + ".png";
+            link.href = dataUrl;
+            link.click();
+          };
+        }
+        if (isDrawingMode && isBorderActive) {
+          svg.style.border = "2px dashed #AAA";
+        }
+      });
+      clearBtn.addEventListener("click", () => {
+        if (!isDrawingMode) return;
+        while (svg.firstChild) {
+          svg.removeChild(svg.lastChild);
+        }
+      });
+      let mouseDown = false;
+      let reentering = false;
+      // Touch support
+      svg.addEventListener("touchstart", (e) => {
+        if (!isDrawingMode) return;
+        e.preventDefault(); // Prevents scrolling
+        startDraw(e);
+      });
+      svg.addEventListener("touchmove", (e) => {
+        if (!isDrawingMode) return;
+        e.preventDefault();
+        draw(e);
+      });
+      svg.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        endDraw();
+      });
+      svg.addEventListener("touchcancel", (e) => {
+        e.preventDefault();
+        endDraw();
+      });
+      // Global mouse state
+      document.addEventListener("mousedown", () => {
+        mouseDown = true;
+      });
+      document.addEventListener("mouseup", () => {
+        mouseDown = false;
+        endDraw();
+      });
+      // Canvas events
+      svg.addEventListener("mousedown", (e) => {
+        if (!isDrawingMode) return;
+        startDraw(e);
+      });
+      svg.addEventListener("mousemove", (e) => {
+        if (!isDrawingMode) return;
+        if (reentering && mouseDown) {
+          // User reentered canvas while holding mouse — start a new stroke
+          startDraw(e);
+          reentering = false;
+        }
+        draw(e);
+      });
+      svg.addEventListener("mouseup", () => {
+        endDraw();
+      });
+      svg.addEventListener("mouseleave", () => {
+        if (painting) {
+          endDraw();
+          if (mouseDown) {
+            reentering = true;
+          }
+        }
+      });
+      svg.addEventListener("mouseenter", (e) => {
+        // Resume drawing on next mousemove (handled there)
+      });
+      // JavaScript back button function
+      function goBack() {
+        window.history.back();
+      }
+    </script>
+  </body>
 </html>
