@@ -173,6 +173,17 @@
             }
          });
          
+         document.addEventListener("DOMContentLoaded", () => {
+   const isMobile = window.matchMedia("(pointer: coarse) and (max-width: 768px)").matches;
+
+   if (isMobile) {
+      document.querySelectorAll(".color").forEach(el => {
+         el.style.width = "60px";
+         el.style.height = "60px";
+      });
+   }
+});
+         
          toggleBtn.addEventListener("click", () => {
             isDrawingMode = !isDrawingMode;
             if (isDrawingMode) {
