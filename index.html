@@ -60,12 +60,11 @@
          justify-content: center;
          width: 100%;
          }
-         #color-palette {
-         display: flex;
-         flex-wrap: wrap;
-         justify-content: center;
-         padding: 10px;
-         }
+        #color-palette {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: flex-start;
+}         
          #clear-btn:disabled {
          opacity: 0.5; /* Reduce opacity for disabled state */
          }
@@ -177,9 +176,25 @@
    const isMobile = window.matchMedia("(pointer: coarse) and (max-width: 768px)").matches;
 
    if (isMobile) {
-      document.querySelectorAll(".color").forEach(el => {
-         el.style.width = "60px";
-         el.style.height = "60px";
+      const palette = document.getElementById("color-palette");
+      const colors = palette.querySelectorAll(".color");
+      const totalColors = colors.length;
+      const rows = 4;
+      const columns = Math.ceil(totalColors / rows);
+      const gap = 0; // adjust if needed
+
+      // Get the actual display width of the container
+      const containerWidth = palette.clientWidth || window.innerWidth;
+
+      // Calculate square size: account for total gaps between columns
+      const totalGapWidth = (columns - 1) * gap;
+      const boxSize = Math.floor((containerWidth - totalGapWidth) / columns);
+
+      colors.forEach(el => {
+         el.style.width = `${boxSize}px`;
+         el.style.height = `${boxSize}px`;
+         el.style.marginRight = `${gap}px`;
+         el.style.marginBottom = `${gap}px`;
       });
    }
 });
