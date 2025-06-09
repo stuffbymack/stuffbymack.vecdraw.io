@@ -13,7 +13,7 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: #eeeeee;
+        background-color: #edf8fc;
         color: #f5f5f5;
         font-family: Arial, sans-serif;
       }
@@ -123,7 +123,7 @@
       let currentPath = null;
       let isDrawingMode = true;
       let lastDrawingColor = currentColor; // initialize the last drawing color
-      let lastViewColor = "#EEEEEE"; // initialize the last view color
+      let lastViewColor = "#edf8fc"; // initialize the last view color
       colors.forEach((color) => {
         const colorDiv = document.createElement("div");
         colorDiv.style.backgroundColor = color;
@@ -182,7 +182,7 @@
           clearBtn.disabled = false;
           svg.style.borderColor = "#AAA"; // for draw
           currentColor = lastDrawingColor; // Use the last drawing color
-          document.body.style.backgroundColor = "#EEEEEE"; // Use the default color when in drawing mode
+          document.body.style.backgroundColor = "#edf8fc"; // Use the default color when in drawing mode
         } else {
           toggleBtn.textContent = "View";
           clearBtn.disabled = true;
